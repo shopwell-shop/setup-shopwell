@@ -176,6 +176,13 @@ runs:
       shell: bash
       run: mkdir -p /tmp/php-sessions
 
+    # Shopwell declares custom/plugins/* as a Composer path repository, but Git
+    # does not materialize the empty directory in a fresh checkout.
+    - name: Prepare Composer path repositories
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: mkdir -p custom/plugins
+
     - name: Start Default MySQL
       if: inputs.mysql-version == 'builtin' && !github.event.act
       shell: bash
