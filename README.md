@@ -1,0 +1,71 @@
+# Setup Shopwell
+
+This GitHub action helps you set up Shopwell, PHP, MySQL, Node.js, and other requirements in your GitHub Actions workflows for unit testing, end-to-end testing, and custom CI/CD workflows.
+
+## Features
+
+- **Easy setup**: Install Shopwell from any repository and version.
+- **PHP & Composer**: Set up PHP (with optional extensions) and Composer.
+- **Database**: Automatically configures MySQL.
+- **Custom install**: Optionally install Shopwell with locale and currency.
+- **Asset building**: Optionally build Administration and Storefront assets.
+- **Test-ready**: Supports PHPUnit and E2E test environments.
+
+
+## Inputs
+
+| Name                   | Description                                                        | Default         | Required |
+|------------------------|--------------------------------------------------------------------|-----------------|----------|
+| `env`                  | Environment type: `test` for PHPUnit, `e2e` for end-to-end.        | `test`          | false    |
+| `shopwell-version`     | Shopwell branch, tag, or commit to install.                        | `trunk`         | true     |
+| `shopwell-repository`  | GitHub repository to clone Shopwell from.                          | `shopwell-shop/shopwell` | true |
+| `php-version`          | PHP version (compatible with [shivammathur/setup-php]).            | `8.2`           | false    |
+| `php-extensions`       | Comma-separated list of PHP extensions.                            |                 | false    |
+| `php-ini-values`       | PHP ini values to set (e.g. `post_max_size=256M`).                 | `session.gc_probability=0` | false    |
+| `composer-root-version`| Set the COMPOSER_ROOT_VERSION. `.auto` to discover from composer.json | `.auto`       | false    |
+| `install`              | Whether to run the Shopwell installer.                             | `false`         | true     |
+| `install-locale`       | Locale for Shopwell installation.                                  | `en-GB`         | true     |
+| `install-currency`     | Currency for Shopwell installation.                                | `EUR`           | true     |
+| `install-admin`        | Build the Administration.                                          |                 | false    |
+| `install-storefront`   | Build the Storefront.                                              |                 | false    |
+| `keep-composer-tools`  | Keep Composer tools (PHPStan, ECS, BC-Checker) after install.      | `false`         | true     |
+| `mysql-version`        | MySQL image to use, or `builtin` for GitHub-hosted MySQL.          | `builtin`       | false    |
+| `node-version`         | Node.js version (e.g. `20.x`).                                    | `20.x`          | false    |
+| `path`                 | Directory in `$GITHUB_WORKSPACE` to clone Shopwell into.           |                 | true     |
+| `disable-bundles`      | Comma-separated list of bundles to disable (e.g., `Administration, Storefront, Elasticsearch`). | | false |
+
+## Example pipeline to run PHPUnit tests
+
+```yaml
+jobs:
+    phpunit:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Setup Shopwell
+              uses: shopwell-shop/setup-shopwell@main
+              with:
+                env: test
+                shopwell-version: trunk
+                shopwell-repository: shopwell-shop/shopwell
+                php-version: 8.1
+                install: true
+```
+
+## `patch-composer`
+
+`setup-shopwell` already patches the installation it creates. Use this action to patch an **additional** Shopwell installation that was set up by other means and contains a Composer version that still rejects modern GitHub installation tokens.
+
+Background: GitHub Actions issues `ghs_` installation tokens with JWT-style segments that `composer/composer` below 2.10 rejects in `BaseIO::loadConfiguration`, which makes commands like `bin/console system:install` fail. Composer 2.10+ dropped that validation (composer/composer#12856), so older vendored copies need the same change applied.
+
+The action is a no-op when the vendored composer is 2.10 or newer, or when there is no vendored composer at all.
+
+| Name   | Description                                       | Default | Required |
+|--------|---------------------------------------------------|---------|----------|
+| `path` | Directory of the Shopwell installation to patch.  | `.`     | false    |
+
+```yaml
+            - name: Patch vendored composer for modern GitHub tokens
+              uses: shopwell-shop/setup-shopwell/patch-composer@main
+              with:
+                path: old-shopwell
+```
